@@ -121,8 +121,7 @@ public class Join extends Operator {
             while (child2.hasNext()) {
                 Tuple next2 = child2.next();
                 //if(next1.getField(joinPredicate.getField1()).equals(next2.getField(joinPredicate.getField2()))){
-                if (next1.getField(joinPredicate.getField1()).compare(joinPredicate.getOperator(),
-                        next2.getField(joinPredicate.getField2()))) {
+                if (joinPredicate.filter(next1,next2)) {
                     TupleDesc mergeTd = getTupleDesc();
                     Tuple tuple = new Tuple(mergeTd);
                     int index = 0;
