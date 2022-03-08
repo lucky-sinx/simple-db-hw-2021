@@ -1,5 +1,6 @@
 package simpledb.storage;
 
+import simpledb.common.Catalog;
 import simpledb.common.Database;
 import simpledb.common.Permissions;
 import simpledb.common.DbException;
@@ -8,10 +9,7 @@ import simpledb.transaction.TransactionId;
 
 import java.io.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -50,7 +48,7 @@ public class BufferPool {
     public BufferPool(int numPages) {
         // some code goes here
         this.numPages = numPages;
-        bufferPool = new HashMap<>();
+        bufferPool = new LinkedHashMap<>();
 
     }
 
@@ -91,11 +89,16 @@ public class BufferPool {
             //当前页面不在bufferPool中，需要从DbFile中读取这页面。
             DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
             page = dbFile.readPage(pid);
-            page.markDirty(false,tid);//新读取到的page设置为false
-            if(bufferPool.size()== numPages){
-                throw new DbException("缓冲池已满，暂时没有替换策略");  // 暂时抛出
+            page.markDirty(false, tid);//新读取到的page设置为false
+            if (bufferPool.size() == numPages) {
+                //throw new DbException("缓冲池已满，暂时没有替换策略");  // 暂时抛出
+                evictPage();//使用lru算法进行置换
             }
             bufferPool.put(pid, page);
+        }else {
+            //更新page为最新
+            bufferPool.remove(pid);
+            bufferPool.put(pid,page);
         }
         return page;
     }
@@ -167,7 +170,7 @@ public class BufferPool {
         DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
         List<Page> dirtyPages = dbFile.insertTuple(tid, t);
         for (Page dirtyPage : dirtyPages) {
-            bufferPool.put(dirtyPage.getId(),dirtyPage);
+            bufferPool.put(dirtyPage.getId(), dirtyPage);
         }
     }
 
@@ -191,12 +194,8 @@ public class BufferPool {
         DbFile dbFile = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
         List<Page> dirtyPages = dbFile.deleteTuple(tid, t);
         for (Page dirtyPage : dirtyPages) {
-            bufferPool.put(dirtyPage.getId(),dirtyPage);
+            bufferPool.put(dirtyPage.getId(), dirtyPage);
         }
-    }
-
-    public void updateDirtyPages(ArrayList<Page> pages){
-
     }
 
     /**
@@ -222,6 +221,7 @@ public class BufferPool {
     public synchronized void discardPage(PageId pid) {
         // some code goes here
         // not necessary for lab1
+        bufferPool.remove(pid);
     }
 
     /**
@@ -232,6 +232,12 @@ public class BufferPool {
     private synchronized void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
+        Page page = bufferPool.get(pid);
+        if (page == null) return;
+        if (page.isDirty() == null) return;
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+        dbFile.writePage(page);
+        page.markDirty(false, null);
     }
 
     /**
@@ -249,6 +255,17 @@ public class BufferPool {
     private synchronized void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
+        Page page = bufferPool.entrySet().iterator().next().getValue();
+        if(page.isDirty()!=null){
+            //脏页，置换前需要flush到disk上
+            try {
+                flushPage(page.getId());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        //删除
+        discardPage(page.getId());
     }
 
 }
