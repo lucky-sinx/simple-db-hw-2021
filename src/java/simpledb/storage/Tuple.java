@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Objects;
 
 /**
  * Tuple maintains information about the contents of a tuple. Tuples have a
@@ -117,5 +118,18 @@ public class Tuple implements Serializable {
     public void resetTupleDesc(TupleDesc td) {
         // some code goes here
         this.schema = td;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Tuple)) return false;
+        Tuple tuple = (Tuple) o;
+        return Objects.equals(schema, tuple.schema) && Objects.equals(rid, tuple.rid) && Objects.equals(fieldsList, tuple.fieldsList);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(schema, rid, fieldsList);
     }
 }

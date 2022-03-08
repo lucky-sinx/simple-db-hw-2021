@@ -8,7 +8,9 @@ import simpledb.transaction.TransactionId;
 
 import java.io.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -89,6 +91,7 @@ public class BufferPool {
             //当前页面不在bufferPool中，需要从DbFile中读取这页面。
             DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
             page = dbFile.readPage(pid);
+            page.markDirty(false,tid);//新读取到的page设置为false
             if(bufferPool.size()== numPages){
                 throw new DbException("缓冲池已满，暂时没有替换策略");  // 暂时抛出
             }
@@ -161,6 +164,11 @@ public class BufferPool {
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
+        List<Page> dirtyPages = dbFile.insertTuple(tid, t);
+        for (Page dirtyPage : dirtyPages) {
+            bufferPool.put(dirtyPage.getId(),dirtyPage);
+        }
     }
 
     /**
@@ -180,6 +188,15 @@ public class BufferPool {
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
+        List<Page> dirtyPages = dbFile.deleteTuple(tid, t);
+        for (Page dirtyPage : dirtyPages) {
+            bufferPool.put(dirtyPage.getId(),dirtyPage);
+        }
+    }
+
+    public void updateDirtyPages(ArrayList<Page> pages){
+
     }
 
     /**

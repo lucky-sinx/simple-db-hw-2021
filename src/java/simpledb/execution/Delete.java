@@ -19,6 +19,8 @@ import java.io.IOException;
 public class Delete extends Operator {
 
     private static final long serialVersionUID = 1L;
+    private final TransactionId tid;
+    private final OpIterator child;
 
     /**
      * Constructor specifying the transaction that this delete belongs to as
@@ -31,11 +33,14 @@ public class Delete extends Operator {
      */
     public Delete(TransactionId t, OpIterator child) {
         // some code goes here
+        this.tid=t;
+        this.child=child;
     }
 
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return null;
+        //return null;
+        return child.getTupleDesc();
     }
 
     public void open() throws DbException, TransactionAbortedException {
