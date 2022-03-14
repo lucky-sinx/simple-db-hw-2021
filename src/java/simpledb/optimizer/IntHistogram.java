@@ -90,6 +90,7 @@ public class IntHistogram {
                 res = 1.0 * bucketList[index] / bucketSize / tupleCnt;
                 break;
             case NOT_EQUALS:
+                if(v<min||v>max)return 1;
                 res = 1.0 - 1.0 * bucketList[index] / bucketSize / tupleCnt;
                 break;
             case LESS_THAN:
