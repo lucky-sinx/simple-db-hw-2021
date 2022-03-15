@@ -14,7 +14,7 @@ public class Filter extends Operator {
 
     private static final long serialVersionUID = 1L;
     private final Predicate p;
-    private final OpIterator child;
+    private OpIterator child;
     private OpIterator[] children=null;
 
     /**
@@ -87,13 +87,13 @@ public class Filter extends Operator {
     public OpIterator[] getChildren() {
         // some code goes here
         //return null;
-        return children;
+        return new OpIterator[]{this.child};
     }
 
     @Override
     public void setChildren(OpIterator[] children) {
         // some code goes here
-        this.children=children;
+        child=children[0];
     }
 
 }

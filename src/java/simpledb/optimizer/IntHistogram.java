@@ -84,42 +84,43 @@ public class IntHistogram {
         double beforeSum, afterSum;
         int bias;
         int index = getTheIndexOfBuckets(v);
+        int indexBucketSize=Math.min(bucketSize,max-(min+index*bucketSize)+1);
         switch (op) {
             case EQUALS:
                 if(v<min||v>max)return 0;
-                res = 1.0 * bucketList[index] / bucketSize / tupleCnt;
+                res = 1.0 * bucketList[index] / indexBucketSize / tupleCnt;
                 break;
             case NOT_EQUALS:
                 if(v<min||v>max)return 1;
-                res = 1.0 - 1.0 * bucketList[index] / bucketSize / tupleCnt;
+                res = 1.0 - 1.0 * bucketList[index] / indexBucketSize / tupleCnt;
                 break;
             case LESS_THAN:
                 if(v<min)return 0;
                 if(v>max)return 1;
                 beforeSum = index == 0 ? 0 : bucketSum[index - 1] * 1.0 / tupleCnt;
                 bias = getBiasOfBucket(v);
-                res = beforeSum + 1.0 * bias * bucketList[index] / bucketSize / tupleCnt;
+                res = beforeSum + 1.0 * bias * bucketList[index] / indexBucketSize / tupleCnt;
                 break;
             case LESS_THAN_OR_EQ:
                 if(v<min)return 0;
                 if(v>max)return 1;
                 beforeSum = index == 0 ? 0 : bucketSum[index - 1] * 1.0 / tupleCnt;
                 bias = getBiasOfBucket(v) + 1;
-                res = beforeSum + 1.0 * bias * bucketList[index] / bucketSize / tupleCnt;
+                res = beforeSum + 1.0 * bias * bucketList[index] / indexBucketSize / tupleCnt;
                 break;
             case GREATER_THAN:
                 if(v<min)return 1;
                 if(v>max)return 0;
                 afterSum = 1.0 * (tupleCnt - bucketSum[index]) / tupleCnt;
-                bias = bucketSize - getBiasOfBucket(v) - 1;
-                res = afterSum + 1.0 * bias * bucketList[index] / bucketSize / tupleCnt;
+                bias = indexBucketSize - getBiasOfBucket(v) - 1;
+                res = afterSum + 1.0 * bias * bucketList[index] / indexBucketSize / tupleCnt;
                 break;
             case GREATER_THAN_OR_EQ:
                 if(v<min)return 1;
                 if(v>max)return 0;
                 afterSum = 1.0 * (tupleCnt - bucketSum[index]) / tupleCnt;
-                bias = bucketSize - getBiasOfBucket(v);
-                res = afterSum + 1.0 * bias * bucketList[index] / bucketSize / tupleCnt;
+                bias = indexBucketSize - getBiasOfBucket(v);
+                res = afterSum + 1.0 * bias * bucketList[index] / indexBucketSize / tupleCnt;
                 break;
         }
         return res;

@@ -20,8 +20,8 @@ public class Insert extends Operator {
 
     private static final long serialVersionUID = 1L;
     private final TransactionId tid;
-    private final OpIterator child;
     private final int tableId;
+    private OpIterator child;
     private boolean called = false;
     private TupleDesc tupleDesc;
 
@@ -109,11 +109,12 @@ public class Insert extends Operator {
     @Override
     public OpIterator[] getChildren() {
         // some code goes here
-        return null;
+        return new OpIterator[]{this.child};
     }
 
     @Override
     public void setChildren(OpIterator[] children) {
         // some code goes here
+        this.child=children[0];
     }
 }
