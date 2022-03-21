@@ -54,7 +54,7 @@ public class BufferPool {
 
     }
 
-    private class LockManager {
+    private class LockManager   {
         //private Map<PageId, ReentrantReadWriteLock> lockMap;
         private Map<PageId, Set<TransactionId>> readTidMap;
         private Map<PageId, TransactionId> writeTidMap;
@@ -134,9 +134,9 @@ public class BufferPool {
             } else {
                 if (readTidMap.containsKey(pageId)) {
                     Set<TransactionId> transactionIdSet = readTidMap.get(pageId);
-                    if(transactionIdSet.contains(tid)){
+                    if (transactionIdSet.contains(tid)) {
                         transactionIdSet.remove(tid);
-                    }else{
+                    } else {
                         throw new TransactionAbortedException();
                     }
                     if (transactionIdSet.size() == 0) {
@@ -146,6 +146,11 @@ public class BufferPool {
                     throw new TransactionAbortedException();
                 }
             }
+        }
+
+        public synchronized boolean holdsLock(PageId p, TransactionId tid) {
+            return writeTidMap.get(p).equals(tid) ||
+                    (readTidMap.containsKey(p) && readTidMap.get(p).contains(tid));
         }
     }
 
@@ -241,7 +246,9 @@ public class BufferPool {
     public boolean holdsLock(TransactionId tid, PageId p) {
         // some code goes here
         // not necessary for lab1|lab2
-        return false;
+
+        //return false;
+        return lockManager.holdsLock(p, tid);
     }
 
     /**

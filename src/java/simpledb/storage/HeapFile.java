@@ -98,9 +98,9 @@ public class HeapFile implements DbFile {
         // some code goes here
         // not necessary for lab1
         PageId id = page.getId();
-        int pgNo=id.getPageNumber();
+        int pgNo = id.getPageNumber();
         int offset = id.getPageNumber() * BufferPool.getPageSize();
-        if(pgNo>numPages()){
+        if (pgNo > numPages()) {
             throw new IOException("");
         }
         RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
@@ -134,6 +134,9 @@ public class HeapFile implements DbFile {
                 page.insertTuple(t);
                 res.add(page);
                 break;
+            } else {
+                //插入时该page没有空slot，可以直接释放掉锁
+                Database.getBufferPool().unsafeReleasePage(tid, pageId);
             }
         }
         if (res.size() == 0) {
