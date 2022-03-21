@@ -103,6 +103,7 @@ public class Insert extends Operator {
         }
         Tuple tuple = new Tuple(tupleDesc);
         tuple.setField(0, new IntField(count));
+        called = true;
         return tuple;
     }
 
@@ -115,6 +116,6 @@ public class Insert extends Operator {
     @Override
     public void setChildren(OpIterator[] children) {
         // some code goes here
-        this.child=children[0];
+        this.child = children[0];
     }
 }
