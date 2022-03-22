@@ -182,14 +182,12 @@ public class HeapFile implements DbFile {
             this.tid = tid;
         }
 
-        public Iterator<Tuple> getPageIterator() {
+        public Iterator<Tuple> getPageIterator() throws DbException {
             Page page = null;
             try {
                 page = Database.getBufferPool().getPage(tid, new HeapPageId(getId(), pagePos), Permissions.READ_ONLY);
                 pagePos++;
             } catch (TransactionAbortedException e) {
-                e.printStackTrace();
-            } catch (DbException e) {
                 e.printStackTrace();
             }
             return ((HeapPage) page).iterator();

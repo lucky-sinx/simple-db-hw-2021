@@ -67,17 +67,25 @@ public class BufferPool {
             tidPageMap = new ConcurrentHashMap<>();
         }
 
-        public void getReadLock(PageId pageId, TransactionId tid) {
+        public void getReadLock(PageId pageId, TransactionId tid) throws TransactionAbortedException {
+            long t1 = System.currentTimeMillis();
             while (!lock(pageId, tid, true)) {
-
+                long now = System.currentTimeMillis();
+                if (now - t1 > 500) {
+                    throw new TransactionAbortedException();
+                }
             }
             //System.out.printf("%s get readLock with pageId-(%d,%d) tid-%d\n", Thread.currentThread().getName(),
             //        pageId.getTableId(), pageId.getPageNumber(), tid.getId());
         }
 
-        public void getWriteLock(PageId pageId, TransactionId tid) {
-            while (!lock(pageId, tid, false)) {
-
+        public void getWriteLock(PageId pageId, TransactionId tid) throws TransactionAbortedException {
+            long t1 = System.currentTimeMillis();
+            while (!lock(pageId, tid, true)) {
+                long now = System.currentTimeMillis();
+                if (now - t1 > 500) {
+                    throw new TransactionAbortedException();
+                }
             }
             //System.out.printf("%s get readLock with pageId-(%d,%d) tid-%d\n", Thread.currentThread().getName(),
             //        pageId.getTableId(), pageId.getPageNumber(), tid.getId());
