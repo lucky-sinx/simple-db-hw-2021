@@ -224,27 +224,51 @@ public class BufferPool {
         //在返回Page之前加锁
         long t1 = System.currentTimeMillis();
         boolean sharedLock = perm == Permissions.READ_ONLY;
+        Random random = new Random(System.currentTimeMillis() + Thread.currentThread().getName().hashCode());
+        long randomTimeout = random.nextInt(300) + 200;
         while (true) {
             try {
                 if (lockManager.lock(pid, tid, sharedLock)) {
                     break;
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            long now = System.currentTimeMillis();
-            if (now - t1 > 500) {
+                long now = System.currentTimeMillis();
+                try {
+                    Thread.sleep(randomTimeout);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if (lockManager.lock(pid, tid, sharedLock)) {
+                    break;
+                }
+                //if (now - t1 > randomTimeout) {
                 System.out.println(String.format("Transaction(%d) may have dead lock, aborted", tid.getId()));
                 throw new TransactionAbortedException();
-            }
-            Random random = new Random();
-            long randomTimeout = random.nextInt(100);
-            try {
-                Thread.sleep(randomTimeout);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            //}
         }
+        //while (true) {
+        //    try {
+        //        if (lockManager.lock(pid, tid, sharedLock)) {
+        //            break;
+        //        }
+        //    } catch (InterruptedException e) {
+        //        e.printStackTrace();
+        //    }
+        //    long now = System.currentTimeMillis();
+        //    if (now - t1 > 500) {
+        //        System.out.println(String.format("Transaction(%d) may have dead lock, aborted", tid.getId()));
+        //        throw new TransactionAbortedException();
+        //    }
+        //    Random random = new Random();
+        //    long randomTimeout = random.nextInt(100);
+        //    try {
+        //        Thread.sleep(randomTimeout);
+        //    } catch (InterruptedException e) {
+        //        e.printStackTrace();
+        //    }
+        //}
         Page page = bufferPool.get(pid);
         if (page == null) {
             //当前页面不在bufferPool中，需要从DbFile中读取这页面。
@@ -308,7 +332,7 @@ public class BufferPool {
         // not necessary for lab1|lab2
 
         //return false;
-        return lockManager.holdsLock(p,tid);
+        return lockManager.holdsLock(p, tid);
     }
 
     /**
