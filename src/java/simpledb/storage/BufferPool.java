@@ -129,7 +129,11 @@ class LockManager {
     }
 
     public synchronized List<PageId> getTidPages(TransactionId tid) {
-        return tidPageMap.get(tid).stream().toList();
+        if(tidPageMap.containsKey(tid)){
+            return tidPageMap.get(tid).stream().toList();
+        }else{
+            return new LinkedList<>();
+        }
     }
 
     public synchronized void close(TransactionId tid) {
