@@ -44,10 +44,26 @@ public class Aggregate extends Operator {
         this.gfield = gfield;
         this.aop = aop;
         Aggregator aggregator;
+        try {
+            child.open();
+        } catch (DbException e) {
+            e.printStackTrace();
+        } catch (TransactionAbortedException e) {
+            e.printStackTrace();
+        }
         if (child.getTupleDesc().getFieldType(afield) == Type.INT_TYPE) {
-            aggregator = new IntegerAggregator(gfield, child.getTupleDesc().getFieldType(gfield), afield, aop);
+            if(gfield==-1){
+                aggregator = new IntegerAggregator(gfield, null, afield, aop);
+            }else {
+                aggregator = new IntegerAggregator(gfield, child.getTupleDesc().getFieldType(gfield), afield, aop);
+            }
         } else {
-            aggregator = new IntegerAggregator(gfield, child.getTupleDesc().getFieldType(gfield), afield, aop);
+            if(gfield==-1){
+                aggregator = new StringAggregator(gfield, null, afield, aop);
+            }else {
+                aggregator = new StringAggregator(gfield, child.getTupleDesc().getFieldType(gfield), afield, aop);
+            }
+            //aggregator = new IntegerAggregator(gfield, child.getTupleDesc().getFieldType(gfield), afield, aop);
         }
         while (true) {
             try {
