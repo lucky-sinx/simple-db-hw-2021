@@ -86,6 +86,7 @@ public class Delete extends Operator {
             }
             count++;
         }
+        called = true;
         Tuple tuple = new Tuple(getTupleDesc());
         tuple.setField(0, new IntField(count));
         return tuple;
