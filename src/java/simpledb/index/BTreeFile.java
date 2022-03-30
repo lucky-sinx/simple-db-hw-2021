@@ -386,13 +386,17 @@ public class BTreeFile implements DbFile {
         //3.将middleKey放到父结点中
 		Field middleEntryKey = middleEntry.getKey();
 		BTreeInternalPage parentPage = getParentWithEmptySlots(tid, dirtypages, page.getParentId(), middleEntryKey);
-		parentPage.insertEntry(new BTreeEntry(middleEntryKey,page.getId(),newBTreeInternalPage.getId()));
-		dirtypages.put(parentPage.getId(),parentPage);
+		parentPage.insertEntry(new BTreeEntry(middleEntryKey, page.getId(), newBTreeInternalPage.getId()));
+		dirtypages.put(parentPage.getId(), parentPage);
+		updateParentPointers(tid, dirtypages, parentPage);
 
 		//4.更新两个子节点的指针
 		BTreePageId nowParentId = parentPage.getId();
-		updateParentPointer(tid, dirtypages, nowParentId, page.getId());
-		updateParentPointer(tid, dirtypages, nowParentId, newBTreeInternalPage.getId());
+		updateParentPointers(tid, dirtypages, page);
+		updateParentPointers(tid, dirtypages, newBTreeInternalPage);
+
+		//updateParentPointer(tid,dirtypages,nowParentId,page.getId());
+		//updateParentPointer(tid,dirtypages,nowParentId,newBTreeInternalPage.getId());
 
 		//5.选择要返回的被插入的InternalPage
 		if (field.compare(Op.LESS_THAN, middleEntryKey)) {
