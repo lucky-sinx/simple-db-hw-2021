@@ -48,13 +48,13 @@ public class Filter extends Operator {
             TransactionAbortedException {
         // some code goes here
         super.open();
-        //this.child.open();
+        this.child.open();
     }
 
     public void close() {
         // some code goes here
         super.close();
-        //this.child.close();/\
+        this.child.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
