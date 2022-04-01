@@ -15,7 +15,8 @@ public class TransactionId implements Serializable {
 
     public TransactionId() {
         myid = counter.getAndIncrement();
-    }
+		//System.out.println(String.format("Transaction[%d] will begin", myid));
+	}
 
     public long getId() {
         return myid;

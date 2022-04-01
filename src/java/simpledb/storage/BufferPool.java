@@ -47,10 +47,10 @@ class LockManager {
             if (writeTidMap.containsKey(pageId)) {
                 //有事务占有排他锁，判断该事务是否是自己
                 if (tid.equals(writeTidMap.get(pageId))) {
-                    System.out.println(String.format("Transaction(%d) get readLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
+                    //System.out.println(String.format("Transaction[%d] get readLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
                     return true;
                 }
-                System.out.println(String.format("Transaction(%d) cannot get readLock of page(%d-%d), because other tid has exclusive lock",
+                System.out.println(String.format("Transaction[%d] cannot get readLock of page(%d-%d), because other tid has exclusive lock",
                         tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
                 //wait(randomTimeout);
                 //wait(5);
@@ -62,14 +62,15 @@ class LockManager {
                 readTidMap.put(pageId, new HashSet<>());
                 readTidMap.get(pageId).add(tid);
                 putPageId2TidMap(pageId, tid);
+                System.out.println(String.format("Transaction[%d] get readLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
             } else {
                 //检查tid是否已经持有pageId的共享锁
                 if (!readTidMap.get(pageId).contains(tid)) {
                     putPageId2TidMap(pageId, tid);
                     readTidMap.get(pageId).add(tid);
+                    System.out.println(String.format("Transaction[%d] get readLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
                 }
             }
-            System.out.println(String.format("Transaction(%d) get readLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
             return true;
         } else {
             //申请排他锁
@@ -80,10 +81,10 @@ class LockManager {
                     writeTidMap.put(pageId, tid);
                     readTidMap.remove(pageId);
                     putPageId2TidMap(pageId, tid);
-                    System.out.println(String.format("Transaction(%d) get writeLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
+                    System.out.println(String.format("Transaction[%d] get writeLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
                     return true;
                 } else {
-                    System.out.println(String.format("Transaction(%d) cannot get writeLock of page(%d-%d) because other tid has shared lock", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
+                    System.out.println(String.format("Transaction[%d] cannot get writeLock of page(%d-%d) because other tid has shared lock", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
                     //wait(5);
                     return false;
                 }
@@ -91,10 +92,10 @@ class LockManager {
                 if (tid.equals(writeTidMap.get(pageId))) {
                     writeTidMap.put(pageId, tid);
                     putPageId2TidMap(pageId, tid);
-                    System.out.println(String.format("Transaction(%d) get writeLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
+                    //System.out.println(String.format("Transaction[%d] get writeLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
                     return true;
                 }
-                System.out.println(String.format("Transaction(%d) cannot get writeLock of page(%d-%d) because other tid has exclusive lock", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
+                System.out.println(String.format("Transaction[%d] cannot get writeLock of page(%d-%d) because other tid has exclusive lock", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
                 //wait(5);
                 return false;
             }
@@ -104,7 +105,7 @@ class LockManager {
     public synchronized void unlock(PageId pageId, TransactionId tid) {
         if (writeTidMap.containsKey(pageId)) {
             if (writeTidMap.get(pageId).equals(tid)) {
-                System.out.println(String.format("Transaction(%d) unlock writeLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
+                System.out.println(String.format("Transaction[%d] unlock writeLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
                 writeTidMap.remove(pageId);
                 removePageIdFromTidMap(pageId, tid);
             }
@@ -112,7 +113,7 @@ class LockManager {
         if (readTidMap.containsKey(pageId)) {
             Set<TransactionId> transactionIdSet = readTidMap.get(pageId);
             if (transactionIdSet.contains(tid)) {
-                System.out.println(String.format("Transaction(%d) unlock readLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
+                System.out.println(String.format("Transaction[%d] unlock readLock of page(%d-%d)", tid.getId(), pageId.getPageNumber(), pageId.getTableId()));
                 removePageIdFromTidMap(pageId, tid);
                 transactionIdSet.remove(tid);
             }
@@ -245,7 +246,7 @@ public class BufferPool {
                     break;
                 }
                 //if (now - t1 > randomTimeout) {
-                System.out.println(String.format("Transaction(%d) may have dead lock, aborted", tid.getId()));
+                System.out.println(String.format("Transaction[%d] may have dead lock, aborted", tid.getId()));
                 throw new TransactionAbortedException();
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -262,7 +263,7 @@ public class BufferPool {
         //    }
         //    long now = System.currentTimeMillis();
         //    if (now - t1 > 500) {
-        //        System.out.println(String.format("Transaction(%d) may have dead lock, aborted", tid.getId()));
+        //        System.out.println(String.format("Transaction[%d] may have dead lock, aborted", tid.getId()));
         //        throw new TransactionAbortedException();
         //    }
         //    Random random = new Random();
@@ -349,6 +350,7 @@ public class BufferPool {
     public void transactionComplete(TransactionId tid, boolean commit) {
         // some code goes here
         // not necessary for lab1|lab2
+        System.out.println(String.format("Transaction[%d] complete,will %s", tid.getId(),commit?"commit":"rollback"));
         if (commit) {
             //commit将所有tid涉及的脏页刷新回disk，释放page的锁
             //When you commit, you should flush dirty pages associated to the transaction to disk
@@ -414,6 +416,7 @@ public class BufferPool {
         DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
         List<Page> dirtyPages = dbFile.insertTuple(tid, t);
         for (Page dirtyPage : dirtyPages) {
+            dirtyPage.markDirty(true,tid);
             bufferPool.put(dirtyPage.getId(), dirtyPage);
         }
     }
@@ -437,7 +440,9 @@ public class BufferPool {
         // not necessary for lab1
         DbFile dbFile = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
         List<Page> dirtyPages = dbFile.deleteTuple(tid, t);
+        System.out.println(String.format("Transaction[%d] delete %s success", tid.getId(),t));
         for (Page dirtyPage : dirtyPages) {
+            dirtyPage.markDirty(true, tid);
             bufferPool.put(dirtyPage.getId(), dirtyPage);
         }
     }

@@ -314,8 +314,9 @@ public class BTreeFile implements DbFile {
         parentPage.insertEntry(new BTreeEntry(middleTupleField, page.getId(), newLeafPage.getId()));
         dirtypages.put(parentId, parentPage);
 
-        updateParentPointer(tid, dirtypages, parentId, page.getId());
-        updateParentPointer(tid, dirtypages, parentId, newLeafPage.getId());
+        updateParentPointer(tid, dirtypages, parentPage.pid, page.getId());
+        updateParentPointer(tid, dirtypages, parentPage.pid, newLeafPage.getId());
+		//updateParentPointers(tid,dirtypages,parentPage);
         //4.判断返回newPage还是page
         if (field.compare(Op.LESS_THAN, middleTupleField)) {
             return page;
@@ -573,7 +574,7 @@ public class BTreeFile implements DbFile {
 
 		// insert the tuple into the leaf page
 		leafPage.insertTuple(t);
-
+		System.out.println(String.format("Transaction[%d] insert tuple %s success", tid.getId(), t));
         return new ArrayList<>(dirtypages.values());
 	}
 
