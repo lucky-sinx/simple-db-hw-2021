@@ -878,7 +878,7 @@ public class BTreeFile implements DbFile {
 		do{
 			BTreeEntry bTreeEntry = rightIterator.next();
 			numEntries++;
-			rightSibling.deleteKeyAndRightChild(bTreeEntry);
+			rightSibling.deleteKeyAndLeftChild(bTreeEntry);
 			page.insertEntry(bTreeEntry);
 		}while (numEntries<needEntries&&rightIterator.hasNext());
 		//4.考虑需要从哪里删掉一个放到parent里面
