@@ -878,7 +878,7 @@ public class BTreeFile implements DbFile {
 		do{
 			BTreeEntry bTreeEntry = rightIterator.next();
 			numEntries++;
-			rightSibling.deleteKeyAndLeftChild(bTreeEntry);
+			rightSibling.deleteKeyAndRightChild(bTreeEntry);
 			page.insertEntry(bTreeEntry);
 		}while (numEntries<needEntries&&rightIterator.hasNext());
 		//4.考虑需要从哪里删掉一个放到parent里面
@@ -927,6 +927,28 @@ public class BTreeFile implements DbFile {
 		// the sibling pointers, and make the right page available for reuse.
 		// Delete the entry in the parent corresponding to the two pages that are merging -
 		// deleteParentEntry() will be useful here
+
+		//1.移动tuple
+		Iterator<Tuple> iterator = rightPage.iterator();
+		while (iterator.hasNext()) {
+			Tuple tuple = iterator.next();
+			rightPage.deleteTuple(tuple);
+			leftPage.insertTuple(tuple);
+		}
+		//2.更新左右邻居（leafPage所独有的）
+		BTreePageId rightPageRightSiblingId = rightPage.getRightSiblingId();
+		leftPage.setRightSiblingId(rightPageRightSiblingId);
+		if (rightPageRightSiblingId != null) {
+			BTreeLeafPage bTreeLeafPage = (BTreeLeafPage) getPage(tid, dirtypages, rightPageRightSiblingId, Permissions.READ_WRITE);
+			bTreeLeafPage.setLeftSiblingId(leftPage.getId());
+			dirtypages.put(rightPageRightSiblingId, bTreeLeafPage);
+		}
+		dirtypages.put(leftPage.pid,leftPage);
+		dirtypages.put(rightPage.pid,rightPage);
+		//3.删除父节点的entry
+		deleteParentEntry(tid, dirtypages, leftPage, parent, parentEntry);
+		//4.释放回收rightPage
+		setEmptyPage(tid, dirtypages, rightPage.pid.getPageNumber());
 	}
 
 	/**
@@ -960,6 +982,23 @@ public class BTreeFile implements DbFile {
 		// and make the right page available for reuse
 		// Delete the entry in the parent corresponding to the two pages that are merging -
 		// deleteParentEntry() will be useful here
+
+		//1.移动parentEntry
+		BTreeEntry middleEntry = new BTreeEntry(parentEntry.getKey(),
+				leftPage.reverseIterator().next().getRightChild(), rightPage.iterator().next().getLeftChild());
+		leftPage.insertEntry(middleEntry);
+		//2.移动rightPage--->leftPage
+		Iterator<BTreeEntry> iterator = rightPage.iterator();
+		while (iterator.hasNext()) {
+			BTreeEntry bTreeEntry = iterator.next();
+			rightPage.deleteKeyAndRightChild(bTreeEntry);
+			leftPage.insertEntry(bTreeEntry);
+		}
+		//3.更新leftPage的child的父节点
+		updateParentPointers(tid, dirtypages, leftPage);
+		//4.删除parentEntry并且释放rightPage
+		setEmptyPage(tid, dirtypages, rightPage.pid.getPageNumber());
+		deleteParentEntry(tid, dirtypages, leftPage, parent, parentEntry);
 	}
 
 	/**
