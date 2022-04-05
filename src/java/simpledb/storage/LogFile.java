@@ -460,6 +460,51 @@ public class LogFile {
             synchronized(this) {
                 preAppend();
                 // some code goes here
+                Long tidOffset = tidToFirstLogRecord.get(tid.getId());
+                raf.seek(tidOffset);
+                while (true){
+                    try {
+                        int cpType = raf.readInt();
+                        long cpTid = raf.readLong();
+                        switch (cpType) {
+                            case BEGIN_RECORD:
+                                raf.readLong();
+                                break;
+                            case ABORT_RECORD:
+                                raf.readLong();
+                                break;
+                            case COMMIT_RECORD:
+                                raf.readLong();
+                                break;
+                            case CHECKPOINT_RECORD:
+                                int numTransactions = raf.readInt();
+                                while (numTransactions-- > 0) {
+                                    long tid_ = raf.readLong();
+                                    long firstRecord = raf.readLong();
+                                }
+                                raf.readLong();
+                                break;
+                            case UPDATE_RECORD:
+                                Page before = readPageData(raf);
+                                readPageData(raf);
+                                raf.readLong();
+                                if(cpTid==tid.getId()){
+                                    BufferPool bufferPool = Database.getBufferPool();
+                                    bufferPool.discardPage(before.getId());
+                                    DbFile databaseFile = Database.getCatalog().getDatabaseFile(before.getId().getTableId());
+                                    databaseFile.writePage(before);
+                                }else{
+                                    int a=1;
+                                }
+                                break;
+                        }
+
+                    } catch (EOFException e) {
+                        //e.printStackTrace();
+                        break;
+                    }
+                }
+
             }
         }
     }
