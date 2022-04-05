@@ -140,7 +140,7 @@ public class LogFile {
     public synchronized int getTotalRecords() {
         return totalRecords;
     }
-    
+
     /** Write an abort record to the log for the specified tid, force
         the log to disk, and perform a rollback
         @param tid The aborting transaction.
@@ -468,12 +468,8 @@ public class LogFile {
                         long cpTid = raf.readLong();
                         switch (cpType) {
                             case BEGIN_RECORD:
-                                raf.readLong();
-                                break;
-                            case ABORT_RECORD:
-                                raf.readLong();
-                                break;
                             case COMMIT_RECORD:
+                            case ABORT_RECORD:
                                 raf.readLong();
                                 break;
                             case CHECKPOINT_RECORD:
@@ -493,18 +489,64 @@ public class LogFile {
                                     bufferPool.discardPage(before.getId());
                                     DbFile databaseFile = Database.getCatalog().getDatabaseFile(before.getId().getTableId());
                                     databaseFile.writePage(before);
-                                }else{
-                                    int a=1;
                                 }
                                 break;
                         }
-
                     } catch (EOFException e) {
                         //e.printStackTrace();
                         break;
                     }
                 }
+                //raf.seek(currentOffset);
+            }
+        }
+    }
 
+    public void rollback(long tid)
+            throws NoSuchElementException, IOException {
+        synchronized (Database.getBufferPool()) {
+            synchronized(this) {
+                preAppend();
+                // some code goes here
+                long lastOffset = raf.getFilePointer();
+                Long tidOffset = tidToFirstLogRecord.get(tid);
+                raf.seek(tidOffset);
+                while (true){
+                    try {
+                        int cpType = raf.readInt();
+                        long cpTid = raf.readLong();
+                        switch (cpType) {
+                            case BEGIN_RECORD:
+                            case ABORT_RECORD:
+                            case COMMIT_RECORD:
+                                raf.readLong();
+                                break;
+                            case CHECKPOINT_RECORD:
+                                int numTransactions = raf.readInt();
+                                while (numTransactions-- > 0) {
+                                    long tid_ = raf.readLong();
+                                    long firstRecord = raf.readLong();
+                                }
+                                raf.readLong();
+                                break;
+                            case UPDATE_RECORD:
+                                Page before = readPageData(raf);
+                                readPageData(raf);
+                                raf.readLong();
+                                if(cpTid==tid){
+                                    BufferPool bufferPool = Database.getBufferPool();
+                                    bufferPool.discardPage(before.getId());
+                                    DbFile databaseFile = Database.getCatalog().getDatabaseFile(before.getId().getTableId());
+                                    databaseFile.writePage(before);
+                                }
+                                break;
+                        }
+                    } catch (EOFException e) {
+                        //e.printStackTrace();
+                        break;
+                    }
+                }
+                raf.seek(lastOffset);
             }
         }
     }
@@ -532,6 +574,73 @@ public class LogFile {
             synchronized (this) {
                 recoveryUndecided = false;
                 // some code goes here
+                raf.seek(0);
+                long cpLoc = raf.readLong();
+                //seek到checkpoint这里，初始化undoList=L,在这undoList也就是tidToFirstLogRecord
+                if (cpLoc != -1L) {
+                    raf.seek(cpLoc);
+                    int cpType = raf.readInt();
+                    @SuppressWarnings("unused")
+                    long cpTid = raf.readLong();
+                    if (cpType != CHECKPOINT_RECORD) {
+                        throw new RuntimeException("Checkpoint pointer does not point to checkpoint record");
+                    }
+                    int numTransactions = raf.readInt();
+                    while (numTransactions-- > 0) {
+                        long tid_ = raf.readLong();
+                        long firstRecord = raf.readLong();
+                        tidToFirstLogRecord.put(tid_,firstRecord);
+                    }
+                    raf.readLong();
+                }
+                //redo
+                while (true){
+                    try {
+                        int cpType = raf.readInt();
+                        long cpTid = raf.readLong();
+                        switch (cpType) {
+                            case BEGIN_RECORD:
+                                long offset = raf.readLong();
+                                tidToFirstLogRecord.put(cpTid,offset);
+                                break;
+                            case ABORT_RECORD:
+                                rollback(cpTid);
+                                raf.readLong();
+                                tidToFirstLogRecord.remove(cpTid);
+                                break;
+                            case COMMIT_RECORD:
+                                raf.readLong();
+                                tidToFirstLogRecord.remove(cpTid);
+                                break;
+                            case CHECKPOINT_RECORD:
+                                int numTransactions = raf.readInt();
+                                while (numTransactions-- > 0) {
+                                    raf.readLong();
+                                    raf.readLong();
+                                }
+                                raf.readLong();
+                                break;
+                            case UPDATE_RECORD:
+                                Page before = readPageData(raf);
+                                Page after = readPageData(raf);
+                                raf.readLong();
+                                BufferPool bufferPool = Database.getBufferPool();
+                                bufferPool.discardPage(before.getId());
+                                DbFile databaseFile = Database.getCatalog().getDatabaseFile(before.getId().getTableId());
+                                databaseFile.writePage(after);
+                                break;
+                        }
+                    } catch (EOFException e) {
+                        //e.printStackTrace();
+                        break;
+                    }
+                }
+                //undo
+                Iterator<Long> undoList = tidToFirstLogRecord.keySet().iterator();
+                while (undoList.hasNext()){
+                    Long tid = undoList.next();
+                    rollback(tid);
+                }
             }
          }
     }

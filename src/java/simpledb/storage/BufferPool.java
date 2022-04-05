@@ -360,7 +360,7 @@ public class BufferPool {
                 //List<PageId> tidPages = lockManager.getLockList(tid);
                 for (PageId pageId : tidPages) {
                     Page page = bufferPool.get(pageId);
-                    if (page == null || page.isDirty() == null) continue;
+                    if (page == null) continue;
                     flushPage(pageId);
                     page.setBeforeImage();
                 }
