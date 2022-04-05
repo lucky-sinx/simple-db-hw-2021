@@ -350,12 +350,19 @@ public class BufferPool {
     public void transactionComplete(TransactionId tid, boolean commit) {
         // some code goes here
         // not necessary for lab1|lab2
-        System.out.println(String.format("Transaction[%d] complete,will %s", tid.getId(),commit?"commit":"rollback"));
         if (commit) {
             //commit将所有tid涉及的脏页刷新回disk，释放page的锁
             //When you commit, you should flush dirty pages associated to the transaction to disk
             try {
-                flushPages(tid);
+                //flushPages(tid);
+                List<PageId> tidPages = lockManager.getTidPages(tid);
+                //List<PageId> tidPages = lockManager.getLockList(tid);
+                for (PageId pageId : tidPages) {
+                    Page page = bufferPool.get(pageId);
+                    if (page == null || page.isDirty() == null) continue;
+                    flushPage(pageId);
+                    page.setBeforeImage();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -371,6 +378,7 @@ public class BufferPool {
             }
         }
         lockManager.close(tid);
+        System.out.println(String.format("Transaction[%d] complete,will %s", tid.getId(),commit?"commit":"rollback"));
         //lockManager.releaseLocksOnTransaction(tid);
     }
 
@@ -455,7 +463,11 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for lab1
-
+        //List<PageId> tidPages = lockManager.getTidPages(tid);
+        //List<PageId> tidPages = lockManager.getLockList(tid);
+        for (PageId pageId : bufferPool.keySet()) {
+            flushPage(pageId);
+        }
     }
 
     /**
@@ -483,7 +495,11 @@ public class BufferPool {
         // not necessary for lab1
         Page page = bufferPool.get(pid);
         if (page == null) return;
-        if (page.isDirty() == null) return;
+        TransactionId transactionId = page.isDirty();
+        if (transactionId == null) return;
+
+        Database.getLogFile().logWrite(transactionId,page.getBeforeImage(),page);
+        Database.getLogFile().force();
         DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
         dbFile.writePage(page);
         page.markDirty(false, null);
