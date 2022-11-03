@@ -37,13 +37,13 @@ class LockManager {
         tidPageMap.get(tid).remove(pageId);
     }
 
-    public synchronized boolean lock(PageId pageId, TransactionId tid, boolean sharedLock) throws InterruptedException {
+    public synchronized boolean lock(PageId pageId, TransactionId tid, boolean isSharedLock) throws InterruptedException {
         //Random random = new Random();
         //long randomTimeout = random.nextInt(10);
         if (!tidPageMap.containsKey(tid)) {
             tidPageMap.put(tid, new HashSet<>());
         }
-        if (sharedLock) {
+        if (isSharedLock) {
             //申请共享锁
             if (writeTidMap.containsKey(pageId)) {
                 //有事务占有排他锁，判断该事务是否是自己
@@ -229,12 +229,12 @@ public class BufferPool {
         // some code goes here
         //在返回Page之前加锁
         long t1 = System.currentTimeMillis();
-        boolean sharedLock = perm == Permissions.READ_ONLY;
+        boolean isSharedLock = perm == Permissions.READ_ONLY;
         Random random = new Random(System.currentTimeMillis() + Thread.currentThread().getName().hashCode());
         long randomTimeout = random.nextInt(300) + 200;
         while (true) {
             try {
-                if (lockManager.lock(pid, tid, sharedLock)) {
+                if (lockManager.lock(pid, tid, isSharedLock)) {
                     break;
                 }
                 long now = System.currentTimeMillis();
@@ -243,7 +243,7 @@ public class BufferPool {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                if (lockManager.lock(pid, tid, sharedLock)) {
+                if (lockManager.lock(pid, tid, isSharedLock)) {
                     break;
                 }
                 //if (now - t1 > randomTimeout) {
